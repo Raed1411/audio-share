@@ -64,8 +64,7 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
         val savedHost = prefs[stringPreferencesKey(NetworkConfigKeys.HOST)]
         val deviceIp = NetworkUtil.getLocalWifiIpAddress(application)
 
-        // Auto-detect IP prefix or full device IP if host is untouched
-        val effectiveHost = if (savedHost.isNullOrEmpty() || savedHost == defaultHost) {
+        val effectiveHost = if (savedHost.isNullOrEmpty() || savedHost == defaultHost || savedHost == "192.168.") {
             if (deviceIp != null) {
                 NetworkUtil.getSubnetPrefix(deviceIp)
             } else {
@@ -100,38 +99,44 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun scanNetwork(port: Int) {
+    fun scanNetwork(port: Int, currentHostInput: String = "") {
         if (_isScanning.value) return
         viewModelScope.launch {
             _isScanning.value = true
             _discoveredServers.value = emptyList()
 
-            val app = getApplication<Application>()
-            val deviceIp = NetworkUtil.getLocalWifiIpAddress(app)
-            val subnetPrefix = if (deviceIp != null) {
-                NetworkUtil.getSubnetPrefix(deviceIp)
-            } else {
-                "192.168.1."
+            val localIps = NetworkUtil.getAllLocalIpAddresses()
+            val candidateSubnets = mutableListOf<String>()
+
+            // 1. Add subnet of currently typed host (e.g. 10.247.76.69 -> 10.247.76.)
+            if (currentHostInput.isNotBlank()) {
+                candidateSubnets.add(NetworkUtil.getSubnetPrefix(currentHostInput))
             }
 
+            // 2. Add local device network interface subnets
+            localIps.forEach { ip ->
+                candidateSubnets.add(NetworkUtil.getSubnetPrefix(ip))
+            }
+
+            // 3. Add default common private subnets
+            candidateSubnets.add("192.168.1.")
+            candidateSubnets.add("192.168.0.")
+            candidateSubnets.add("10.0.0.")
+
             val serversList = mutableListOf<String>()
-            NetworkUtil.scanLocalSubnetForServers(
-                subnetPrefix = subnetPrefix,
+            NetworkUtil.scanNetworkForServers(
+                subnets = candidateSubnets.distinct(),
                 port = port,
-                timeoutMs = 250,
+                timeoutMs = 350,
                 onServerFound = { newServerIp ->
                     if (!serversList.contains(newServerIp)) {
                         serversList.add(newServerIp)
                         _discoveredServers.value = serversList.toList()
+                        // Auto-populate discovered server IP into network settings
+                        saveNetWorkSettings(newServerIp, port)
                     }
                 }
             )
-
-            // Auto-select first discovered server if found and current host is prefix/empty
-            if (serversList.isNotEmpty()) {
-                val firstServer = serversList.first()
-                saveNetWorkSettings(firstServer, port)
-            }
 
             _isScanning.value = false
         }
@@ -141,8 +146,7 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
         val app = getApplication<Application>()
         val deviceIp = NetworkUtil.getLocalWifiIpAddress(app)
         if (deviceIp != null) {
-            val prefix = NetworkUtil.getSubnetPrefix(deviceIp)
-            saveNetWorkSettings(prefix, app.getInteger(R.integer.default_port))
+            saveNetWorkSettings(deviceIp, app.getInteger(R.integer.default_port))
         }
     }
 }

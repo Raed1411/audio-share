@@ -17,7 +17,6 @@
 package io.github.mkckr0.audio_share_app.model
 
 import android.content.Context
-import android.net.wifi.WifiManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -27,31 +26,26 @@ import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.net.Socket
-import java.util.Locale
 
 object NetworkUtil {
 
     /**
-     * Retrieves the current device local IPv4 address on Wi-Fi or active network interface.
+     * Validates whether an IPv4 address is a real local address and not a dummy/loopback address.
      */
-    fun getLocalWifiIpAddress(context: Context): String? {
-        try {
-            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-            val dhcpInfo = wifiManager?.dhcpInfo
-            if (dhcpInfo != null && dhcpInfo.ipAddress != 0) {
-                val ip = dhcpInfo.ipAddress
-                return String.format(
-                    Locale.US,
-                    "%d.%d.%d.%d",
-                    ip and 0xff,
-                    ip shr 8 and 0xff,
-                    ip shr 16 and 0xff,
-                    ip shr 24 and 0xff
-                )
-            }
-        } catch (_: Exception) {
-        }
+    private fun isValidLocalIp(ip: String): Boolean {
+        if (ip.isBlank()) return false
+        if (ip.startsWith("127.")) return false
+        if (ip.startsWith("192.0.0.")) return false // Dummy IANA address on some Android carriers
+        if (ip.startsWith("169.254.")) return false // Link-local
+        if (ip == "0.0.0.0" || ip == "255.255.255.255") return false
+        return true
+    }
 
+    /**
+     * Retrieves all valid IPv4 addresses from all active network interfaces.
+     */
+    fun getAllLocalIpAddresses(): List<String> {
+        val ips = mutableListOf<String>()
         try {
             val interfaces = NetworkInterface.getNetworkInterfaces()
             while (interfaces.hasMoreElements()) {
@@ -62,20 +56,33 @@ object NetworkUtil {
                     val addr = addresses.nextElement()
                     if (!addr.isLoopbackAddress && addr is Inet4Address) {
                         val hostAddress = addr.hostAddress
-                        if (hostAddress != null && !hostAddress.startsWith("127.")) {
-                            return hostAddress
+                        if (hostAddress != null && isValidLocalIp(hostAddress)) {
+                            ips.add(hostAddress)
                         }
                     }
                 }
             }
         } catch (_: Exception) {
         }
-
-        return null
+        return ips
     }
 
     /**
-     * Extracts the subnet prefix from an IP address (e.g. "192.168.1.15" -> "192.168.1.")
+     * Retrieves the primary local device IPv4 address.
+     */
+    fun getLocalWifiIpAddress(context: Context): String? {
+        val allIps = getAllLocalIpAddresses()
+        // Prefer private IPv4 address ranges: 192.168.x.x, 10.x.x.x, 172.16-31.x.x
+        val privateIp = allIps.firstOrNull { ip ->
+            ip.startsWith("192.168.") || ip.startsWith("10.") || ip.startsWith("172.")
+        }
+        if (privateIp != null) return privateIp
+
+        return allIps.firstOrNull()
+    }
+
+    /**
+     * Extracts the subnet prefix from an IP address (e.g. "10.247.76.69" -> "10.247.76.")
      */
     fun getSubnetPrefix(ipAddress: String): String {
         val lastDotIndex = ipAddress.lastIndexOf('.')
@@ -87,29 +94,33 @@ object NetworkUtil {
     }
 
     /**
-     * Scans the local subnet for active Audio Share servers concurrently.
+     * Scans candidate subnets for active Audio Share servers concurrently.
      */
-    suspend fun scanLocalSubnetForServers(
-        subnetPrefix: String,
+    suspend fun scanNetworkForServers(
+        subnets: List<String>,
         port: Int = 65530,
         timeoutMs: Int = 300,
         onServerFound: (String) -> Unit = {}
     ): List<String> = withContext(Dispatchers.IO) {
-        val prefix = if (subnetPrefix.endsWith(".")) subnetPrefix else "$subnetPrefix."
         val foundServers = mutableListOf<String>()
+        val prefixes = subnets.map { if (it.endsWith(".")) it else "$it." }.distinct()
 
         coroutineScope {
-            val deferreds = (1..254).map { hostSuffix ->
-                async {
-                    val candidateIp = "$prefix$hostSuffix"
-                    if (isServerActiveAt(candidateIp, port, timeoutMs)) {
-                        synchronized(foundServers) {
-                            foundServers.add(candidateIp)
+            val deferreds = prefixes.flatMap { prefix ->
+                (1..254).map { hostSuffix ->
+                    async {
+                        val candidateIp = "$prefix$hostSuffix"
+                        if (isServerActiveAt(candidateIp, port, timeoutMs)) {
+                            synchronized(foundServers) {
+                                if (!foundServers.contains(candidateIp)) {
+                                    foundServers.add(candidateIp)
+                                }
+                            }
+                            onServerFound(candidateIp)
+                            candidateIp
+                        } else {
+                            null
                         }
-                        onServerFound(candidateIp)
-                        candidateIp
-                    } else {
-                        null
                     }
                 }
             }

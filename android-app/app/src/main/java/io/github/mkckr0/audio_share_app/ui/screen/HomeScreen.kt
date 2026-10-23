@@ -129,7 +129,7 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
                     discoveredServers = uiState.discoveredServers,
                     onScanClick = {
                         val currentPort = port.toIntOrNull() ?: 65530
-                        viewModel.scanNetwork(currentPort)
+                        viewModel.scanNetwork(currentPort, host)
                     },
                     onServerSelected = { serverIp ->
                         host = serverIp
