@@ -65,11 +65,7 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
         val deviceIp = NetworkUtil.getLocalWifiIpAddress(application)
 
         val effectiveHost = if (savedHost.isNullOrEmpty() || savedHost == defaultHost || savedHost == "192.168.") {
-            if (deviceIp != null) {
-                NetworkUtil.getSubnetPrefix(deviceIp)
-            } else {
-                defaultHost
-            }
+            deviceIp ?: defaultHost
         } else {
             savedHost
         }
