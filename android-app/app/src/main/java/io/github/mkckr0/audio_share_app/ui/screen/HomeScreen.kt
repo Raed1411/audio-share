@@ -38,13 +38,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Radar
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -60,6 +60,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -112,6 +113,16 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
 
             val mainScrollState = rememberScrollState()
 
+            // Auto-fill host with detected device IP when host is empty or default prefix
+            LaunchedEffect(uiState.deviceIp) {
+                val devIp = uiState.deviceIp
+                if (devIp != null && (host.isEmpty() || host == "192.168." || host.endsWith("."))) {
+                    host = devIp
+                    val currentPort = port.toIntOrNull() ?: 65530
+                    viewModel.saveNetWorkSettings(devIp, currentPort)
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -137,7 +148,14 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
                         viewModel.saveNetWorkSettings(serverIp, currentPort)
                     },
                     onAutoDetectIpClick = {
-                        viewModel.autoDetectLocalIp()
+                        val devIp = uiState.deviceIp
+                        if (devIp != null) {
+                            host = devIp
+                            val currentPort = port.toIntOrNull() ?: 65530
+                            viewModel.saveNetWorkSettings(devIp, currentPort)
+                        } else {
+                            viewModel.autoDetectLocalIp()
+                        }
                     }
                 )
 
@@ -150,12 +168,37 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            text = stringResource(R.string.label_host),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(R.string.label_host),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            if (uiState.deviceIp != null && !started) {
+                                FilterChip(
+                                    selected = host == uiState.deviceIp,
+                                    onClick = {
+                                        host = uiState.deviceIp
+                                        val currentPort = port.toIntOrNull() ?: 65530
+                                        viewModel.saveNetWorkSettings(uiState.deviceIp, currentPort)
+                                    },
+                                    label = { Text(stringResource(R.string.label_auto_detect_ip)) },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.AutoFixHigh,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                )
+                            }
+                        }
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -179,12 +222,27 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
                                     )
                                 },
                                 trailingIcon = {
-                                    if (host.isNotEmpty() && !started) {
-                                        IconButton(onClick = { host = "" }) {
-                                            Icon(
-                                                imageVector = Icons.Default.Clear,
-                                                contentDescription = null
-                                            )
+                                    Row {
+                                        if (uiState.deviceIp != null && host != uiState.deviceIp && !started) {
+                                            IconButton(onClick = {
+                                                host = uiState.deviceIp
+                                                val currentPort = port.toIntOrNull() ?: 65530
+                                                viewModel.saveNetWorkSettings(uiState.deviceIp, currentPort)
+                                            }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.AutoFixHigh,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                        if (host.isNotEmpty() && !started) {
+                                            IconButton(onClick = { host = "" }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Clear,
+                                                    contentDescription = null
+                                                )
+                                            }
                                         }
                                     }
                                 },
