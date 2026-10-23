@@ -13,7 +13,6 @@
     <string name="label_scanning">Scanning local network...</string>
     <string name="label_discovered_servers">Discovered Servers</string>
     <string name="label_no_servers_found">No active servers found</string>
-    <string name="label_auto_detect_ip">Auto-Detect IP</string>
     <string name="label_start_streaming">Start Streaming</string>
     <string name="label_stop_streaming">Stop Streaming</string>
     <string name="label_status_disconnected">Disconnected</string>

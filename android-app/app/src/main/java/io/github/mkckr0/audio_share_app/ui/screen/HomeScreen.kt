@@ -38,7 +38,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Info
@@ -157,36 +156,12 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = stringResource(R.string.label_host),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-
-                            if (!started) {
-                                FilterChip(
-                                    selected = host in uiState.discoveredServers,
-                                    enabled = !uiState.isScanning,
-                                    onClick = {
-                                        viewModel.scanNetwork(port.toIntOrNull() ?: 65530, host)
-                                    },
-                                    label = { Text(stringResource(R.string.label_auto_detect_ip)) },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Default.AutoFixHigh,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                )
-                            }
-                        }
+                        Text(
+                            text = stringResource(R.string.label_host),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -210,26 +185,12 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
                                     )
                                 },
                                 trailingIcon = {
-                                    Row {
-                                        if (host !in uiState.discoveredServers && !started) {
-                                            IconButton(
-                                                onClick = { viewModel.scanNetwork(port.toIntOrNull() ?: 65530, host) },
-                                                enabled = !uiState.isScanning,
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.AutoFixHigh,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary
-                                                )
-                                            }
-                                        }
-                                        if (host.isNotEmpty() && !started) {
-                                            IconButton(onClick = { host = "" }) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Clear,
-                                                    contentDescription = null
-                                                )
-                                            }
+                                    if (host.isNotEmpty() && !started) {
+                                        IconButton(onClick = { host = "" }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Clear,
+                                                contentDescription = null
+                                            )
                                         }
                                     }
                                 },
@@ -439,8 +400,7 @@ private fun NetworkDiscoveryCard(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (deviceIp != null) stringResource(R.string.label_device_ip, deviceIp)
-                            else stringResource(R.string.label_auto_detect_ip),
+                            text = stringResource(R.string.label_device_ip, deviceIp ?: "—"),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold
                         )
