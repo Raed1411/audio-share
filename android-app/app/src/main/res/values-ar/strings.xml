@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Main Screen -->
+    <string name="label_home">الرئيسية</string>
+    <string name="label_audio">الصوت</string>
+    <string name="label_settings">الإعدادات</string>
+
+    <!-- Home Screen & Network Discovery -->
+    <string name="label_host">العنوان (Host)</string>
+    <string name="label_port">المنفذ (Port)</string>
+    <string name="label_device_ip">عنوان الجهاز: %s</string>
+    <string name="label_scan_network">فحص الشبكة</string>
+    <string name="label_scanning">جاري فحص الشبكة المحلية...</string>
+    <string name="label_discovered_servers">الخوادم المكتشفة</string>
+    <string name="label_no_servers_found">لم يتم العثور على خوادم نشطة</string>
+    <string name="label_auto_detect_ip">كشف IP تلقائياً</string>
+    <string name="label_start_streaming">بدء البث</string>
+    <string name="label_stop_streaming">إيقاف البث</string>
+    <string name="label_status_disconnected">غير متصل</string>
+    <string name="label_status_connecting">جاري الاتصال...</string>
+    <string name="label_status_streaming">جاري بث الصوت</string>
+    <string name="label_logs">سجل الأنشطة</string>
+    <string name="label_clear_logs">مسح</string>
+
+    <!-- Audio Screen -->
+    <string name="label_audio_track">مسار الصوت</string>
+    <string name="label_volume_linear_gain">مستوى الصوت</string>
+    <string name="label_buffer_scale">حجم التخزين المؤقت</string>
+    <string name="label_audio_effect">مؤثرات الصوت</string>
+    <string name="label_loudness_enhancer">مُعزز الصوت (Loudness Enhancer)</string>
+    <string name="label_reset_defaults">إعادة الضبط الافتراضي</string>
+
+    <!-- Settings Screen -->
+    <string name="label_auto_start">التشغيل التلقائي</string>
+    <string name="label_auto_start_when_system_boots">بدء التشغيل عند إقلاع النظام</string>
+    <string name="label_auto_start_when_app_starts">بدء التشغيل عند فتح التطبيق</string>
+    <string name="label_ignored">مُتجاهَل</string>
+    <string name="label_not_ignored">غير مُتجاهَل</string>
+    <string name="label_battery_optimization">تحسين البطارية</string>
+    <string name="label_request_battery_optimization">طلب استثناء تحسين البطارية</string>
+    <string name="label_battery_optimization_settings">إعدادات تحسين البطارية</string>
+    <string name="label_appearance">المظهر</string>
+    <string name="label_language">اللغة</string>
+    <string name="label_dynamic_color_from_wallpaper">الألوان الديناميكية من الخلفية</string>
+    <string name="label_dynamic_color_from_seed_color">اللون الأساسي للتطبيق</string>
+    <string name="label_color_is_invalid">اللون غير صالح</string>
+    <string name="label_notification">الإشعارات</string>
+    <string name="label_notification_settings">إعدادات الإشعارات</string>
+    <string name="label_update">التحديثات</string>
+    <string name="label_auto_check_for_update">التحقق التلقائي من التحديثات</string>
+    <string name="label_check_for_update">التحقق من وجود تحديث</string>
+    <string name="label_latest_release">أحدث إصدار</string>
+    <string name="label_about">حول التطبيق</string>
+    <string name="label_issues">المشكلات والافتراحات</string>
+    <string name="label_report_a_bug">الإبلاغ عن مشكلة أو طلب ميزة جديدة</string>
+    <string name="label_version">الإصدار</string>
+
+    <!-- Update Worker -->
+    <string name="label_no_update">لا يوجد تحديث</string>
+    <string name="label_has_an_update_1">يوجد تحديث بدون ملف APK</string>
+    <string name="label_has_an_update_2">إصدار جديد (%s)</string>
+    <string name="label_no_post_notification_permission">لا يوجد إذن لإرسال الإشعارات</string>
+    <string name="label_tap_notification_1">اضغط للتنزيل</string>
+    <string name="label_tap_notification_2">يوجد تحديث، اضغط لبدء التنزيل</string>
+
+    <!-- Audio Player -->
+    <string name="label_started">تم بدء البث</string>
+    <string name="label_stopped">متوقف</string>
+    <string name="label_paused">متوقف مؤقتاً</string>
+    <string name="label_retry">سيتم إعادة المحاولة خلال %d ثوانٍ</string>
+    <string name="label_timeout">انتهت مهلة الاتصال</string>
+    <string name="label_unresolved_address">عنوان غير معروف</string>
+    <string name="label_connecting">جاري الاتصال</string>
+</resources>

@@ -4,23 +4,32 @@
     <string name="label_home">Home</string>
     <string name="label_audio">Audio</string>
     <string name="label_settings">Settings</string>
-    <!-- Home Screen -->
+
+    <!-- Home Screen & Network Discovery -->
     <string name="label_host">Host</string>
     <string name="label_port">Port</string>
-    <string name="label_find_servers">Find servers on the local network</string>
-    <string name="label_searching_servers">Searching the local network…</string>
-    <string name="label_no_server_found">No server found, enter the host manually</string>
-    <string name="label_search_again">Search again</string>
-    <plurals name="label_servers_found">
-        <item quantity="one">%d server found</item>
-        <item quantity="other">%d servers found</item>
-    </plurals>
+    <string name="label_device_ip">Device IP: %s</string>
+    <string name="label_scan_network">Scan Network</string>
+    <string name="label_scanning">Scanning local network...</string>
+    <string name="label_discovered_servers">Discovered Servers</string>
+    <string name="label_no_servers_found">No active servers found</string>
+    <string name="label_auto_detect_ip">Auto-Detect IP</string>
+    <string name="label_start_streaming">Start Streaming</string>
+    <string name="label_stop_streaming">Stop Streaming</string>
+    <string name="label_status_disconnected">Disconnected</string>
+    <string name="label_status_connecting">Connecting...</string>
+    <string name="label_status_streaming">Streaming Audio</string>
+    <string name="label_logs">Activity Log</string>
+    <string name="label_clear_logs">Clear</string>
+
     <!-- Audio Screen -->
     <string name="label_audio_track">Audio Track</string>
     <string name="label_volume_linear_gain">Volume(Linear Gain)</string>
     <string name="label_buffer_scale">Buffer Scale(Multiple of MinBufferSize)</string>
     <string name="label_audio_effect">Audio Effect</string>
     <string name="label_loudness_enhancer">Loudness Enhancer</string>
+    <string name="label_reset_defaults">Reset Defaults</string>
+
     <!-- Settings Screen -->
     <string name="label_auto_start">Auto Start</string>
     <string name="label_auto_start_when_system_boots">Auto start playback when system boots</string>
@@ -45,6 +54,7 @@
     <string name="label_issues">Issues</string>
     <string name="label_report_a_bug">Report a bug or request a new feature</string>
     <string name="label_version">Version</string>
+
     <!-- Update Worker -->
     <string name="label_no_update">No update</string>
     <string name="label_has_an_update_1">Has an update, but no APK</string>
@@ -52,6 +62,7 @@
     <string name="label_no_post_notification_permission">No permission to post notification</string>
     <string name="label_tap_notification_1">Tap this notification to start downloading</string>
     <string name="label_tap_notification_2">Has an update, tap the notification to start downloading</string>
+
     <!-- Audio Player -->
     <string name="label_started">Started</string>
     <string name="label_stopped">Stopped</string>
