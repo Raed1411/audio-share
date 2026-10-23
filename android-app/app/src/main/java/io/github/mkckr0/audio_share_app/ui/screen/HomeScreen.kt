@@ -84,7 +84,6 @@ import androidx.media3.common.Player
 import io.github.mkckr0.audio_share_app.R
 import io.github.mkckr0.audio_share_app.service.AudioPlayer
 import io.github.mkckr0.audio_share_app.ui.MainActivity
-import io.github.mkckr0.audio_share_app.ui.screen.HomeScreenViewModel.DiscoveryState
 import io.github.mkckr0.audio_share_app.ui.screen.HomeScreenViewModel.UiState
 import kotlinx.coroutines.launch
 
@@ -114,13 +113,11 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
 
             val mainScrollState = rememberScrollState()
 
-            // Auto-fill host with detected device IP when host is empty or default prefix
-            LaunchedEffect(uiState.deviceIp) {
-                val devIp = uiState.deviceIp
-                if (devIp != null && (host.isEmpty() || host == "192.168." || host.endsWith("."))) {
-                    host = devIp
-                    val currentPort = port.toIntOrNull() ?: 65530
-                    viewModel.saveNetWorkSettings(devIp, currentPort)
+            // search the local network on open when no server address has been entered yet,
+            // the host must be the computer running the server, never this device's own IP
+            LaunchedEffect(Unit) {
+                if (host.isEmpty() || host.endsWith(".")) {
+                    viewModel.scanNetwork(port.toIntOrNull() ?: 65530, host)
                 }
             }
 
@@ -137,6 +134,7 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
                 // 2. Wi-Fi & Local Network Auto-Discovery Card
                 NetworkDiscoveryCard(
                     deviceIp = uiState.deviceIp,
+                    selectedHost = host,
                     isScanning = uiState.isScanning,
                     discoveredServers = uiState.discoveredServers,
                     onScanClick = {
@@ -148,16 +146,6 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
                         val currentPort = port.toIntOrNull() ?: 65530
                         viewModel.saveNetWorkSettings(serverIp, currentPort)
                     },
-                    onAutoDetectIpClick = {
-                        val devIp = uiState.deviceIp
-                        if (devIp != null) {
-                            host = devIp
-                            val currentPort = port.toIntOrNull() ?: 65530
-                            viewModel.saveNetWorkSettings(devIp, currentPort)
-                        } else {
-                            viewModel.autoDetectLocalIp()
-                        }
-                    }
                 )
 
                 // 3. Server Host & Port Card
@@ -181,13 +169,12 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
                                 color = MaterialTheme.colorScheme.onSurface
                             )
 
-                            if (uiState.deviceIp != null && !started) {
+                            if (!started) {
                                 FilterChip(
-                                    selected = host == uiState.deviceIp,
+                                    selected = host in uiState.discoveredServers,
+                                    enabled = !uiState.isScanning,
                                     onClick = {
-                                        host = uiState.deviceIp
-                                        val currentPort = port.toIntOrNull() ?: 65530
-                                        viewModel.saveNetWorkSettings(uiState.deviceIp, currentPort)
+                                        viewModel.scanNetwork(port.toIntOrNull() ?: 65530, host)
                                     },
                                     label = { Text(stringResource(R.string.label_auto_detect_ip)) },
                                     leadingIcon = {
@@ -224,12 +211,11 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
                                 },
                                 trailingIcon = {
                                     Row {
-                                        if (uiState.deviceIp != null && host != uiState.deviceIp && !started) {
-                                            IconButton(onClick = {
-                                                host = uiState.deviceIp
-                                                val currentPort = port.toIntOrNull() ?: 65530
-                                                viewModel.saveNetWorkSettings(uiState.deviceIp, currentPort)
-                                            }) {
+                                        if (host !in uiState.discoveredServers && !started) {
+                                            IconButton(
+                                                onClick = { viewModel.scanNetwork(port.toIntOrNull() ?: 65530, host) },
+                                                enabled = !uiState.isScanning,
+                                            ) {
                                                 Icon(
                                                     imageVector = Icons.Default.AutoFixHigh,
                                                     contentDescription = null,
@@ -417,11 +403,11 @@ private fun StatusHeroCard(started: Boolean) {
 @Composable
 private fun NetworkDiscoveryCard(
     deviceIp: String?,
+    selectedHost: String,
     isScanning: Boolean,
     discoveredServers: List<String>,
     onScanClick: () -> Unit,
     onServerSelected: (String) -> Unit,
-    onAutoDetectIpClick: () -> Unit
 ) {
     OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -436,8 +422,8 @@ private fun NetworkDiscoveryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // informational only: this device's IP is not the server address
                 Surface(
-                    onClick = onAutoDetectIpClick,
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh
                 ) {
@@ -507,7 +493,7 @@ private fun NetworkDiscoveryCard(
                         ) {
                             discoveredServers.forEach { serverIp ->
                                 FilterChip(
-                                    selected = false,
+                                    selected = serverIp == selectedHost,
                                     onClick = { onServerSelected(serverIp) },
                                     label = { Text(serverIp) },
                                     leadingIcon = {

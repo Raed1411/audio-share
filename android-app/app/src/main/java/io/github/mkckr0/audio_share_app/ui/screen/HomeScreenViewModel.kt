@@ -65,11 +65,8 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
         val savedHost = prefs[stringPreferencesKey(NetworkConfigKeys.HOST)]
         val deviceIp = NetworkUtil.getLocalWifiIpAddress(application)
 
-        val effectiveHost = if (savedHost.isNullOrEmpty() || savedHost == defaultHost || savedHost == "192.168.") {
-            deviceIp ?: defaultHost
-        } else {
-            savedHost
-        }
+        // never substitute the phone's own IP here, the server runs on another machine
+        val effectiveHost = if (savedHost.isNullOrEmpty()) defaultHost else savedHost
 
         val port = prefs[intPreferencesKey(NetworkConfigKeys.PORT)]
             ?: application.getInteger(R.integer.default_port)
@@ -87,25 +84,6 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
         initialValue = UiState.Loading,
     )
 
-    sealed interface DiscoveryState {
-        data object Idle : DiscoveryState
-        data object Scanning : DiscoveryState
-        data class Done(val servers: List<ServerDiscovery.Server>) : DiscoveryState
-    }
-
-    private val _discoveryState = MutableStateFlow<DiscoveryState>(DiscoveryState.Idle)
-    val discoveryState: StateFlow<DiscoveryState> = _discoveryState.asStateFlow()
-
-    fun discoverServers(port: Int) {
-        if (_discoveryState.value == DiscoveryState.Scanning) {
-            return
-        }
-        _discoveryState.value = DiscoveryState.Scanning
-        viewModelScope.launch {
-            _discoveryState.value = DiscoveryState.Done(ServerDiscovery.discover(port))
-        }
-    }
-
     fun saveNetWorkSettings(host: String, port: Int): Job {
         return viewModelScope.launch {
             getApplication<Application>().networkConfigDataStore.edit {
@@ -115,54 +93,24 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun scanNetwork(port: Int, currentHostInput: String = "") {
+    /**
+     * Searches the local networks for audio-share servers and puts the first one found into the host field,
+     * unless the current host is already one of them.
+     */
+    fun scanNetwork(port: Int, currentHost: String = "") {
         if (_isScanning.value) return
         viewModelScope.launch {
             _isScanning.value = true
             _discoveredServers.value = emptyList()
-
-            val localIps = NetworkUtil.getAllLocalIpAddresses()
-            val candidateSubnets = mutableListOf<String>()
-
-            // 1. Add subnet of currently typed host (e.g. 10.247.76.69 -> 10.247.76.)
-            if (currentHostInput.isNotBlank()) {
-                candidateSubnets.add(NetworkUtil.getSubnetPrefix(currentHostInput))
-            }
-
-            // 2. Add local device network interface subnets
-            localIps.forEach { ip ->
-                candidateSubnets.add(NetworkUtil.getSubnetPrefix(ip))
-            }
-
-            // 3. Add default common private subnets
-            candidateSubnets.add("192.168.1.")
-            candidateSubnets.add("192.168.0.")
-            candidateSubnets.add("10.0.0.")
-
-            val serversList = mutableListOf<String>()
-            NetworkUtil.scanNetworkForServers(
-                subnets = candidateSubnets.distinct(),
-                port = port,
-                timeoutMs = 350,
-                onServerFound = { newServerIp ->
-                    if (!serversList.contains(newServerIp)) {
-                        serversList.add(newServerIp)
-                        _discoveredServers.value = serversList.toList()
-                        // Auto-populate discovered server IP into network settings
-                        saveNetWorkSettings(newServerIp, port)
-                    }
+            try {
+                val servers = ServerDiscovery.discover(port).map { it.host }.distinct().sorted()
+                _discoveredServers.value = servers
+                if (servers.isNotEmpty() && currentHost !in servers) {
+                    saveNetWorkSettings(servers.first(), port)
                 }
-            )
-
-            _isScanning.value = false
-        }
-    }
-
-    fun autoDetectLocalIp() {
-        val app = getApplication<Application>()
-        val deviceIp = NetworkUtil.getLocalWifiIpAddress(app)
-        if (deviceIp != null) {
-            saveNetWorkSettings(deviceIp, app.getInteger(R.integer.default_port))
+            } finally {
+                _isScanning.value = false
+            }
         }
     }
 }
