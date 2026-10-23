@@ -17,15 +17,8 @@
 package io.github.mkckr0.audio_share_app.model
 
 import android.content.Context
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withContext
 import java.net.Inet4Address
-import java.net.InetSocketAddress
 import java.net.NetworkInterface
-import java.net.Socket
 
 object NetworkUtil {
 
@@ -79,65 +72,5 @@ object NetworkUtil {
         if (privateIp != null) return privateIp
 
         return allIps.firstOrNull()
-    }
-
-    /**
-     * Extracts the subnet prefix from an IP address (e.g. "10.247.76.69" -> "10.247.76.")
-     */
-    fun getSubnetPrefix(ipAddress: String): String {
-        val lastDotIndex = ipAddress.lastIndexOf('.')
-        return if (lastDotIndex != -1) {
-            ipAddress.substring(0, lastDotIndex + 1)
-        } else {
-            "192.168.1."
-        }
-    }
-
-    /**
-     * Scans candidate subnets for active Audio Share servers concurrently.
-     */
-    suspend fun scanNetworkForServers(
-        subnets: List<String>,
-        port: Int = 65530,
-        timeoutMs: Int = 300,
-        onServerFound: (String) -> Unit = {}
-    ): List<String> = withContext(Dispatchers.IO) {
-        val foundServers = mutableListOf<String>()
-        val prefixes = subnets.map { if (it.endsWith(".")) it else "$it." }.distinct()
-
-        coroutineScope {
-            val deferreds = prefixes.flatMap { prefix ->
-                (1..254).map { hostSuffix ->
-                    async {
-                        val candidateIp = "$prefix$hostSuffix"
-                        if (isServerActiveAt(candidateIp, port, timeoutMs)) {
-                            synchronized(foundServers) {
-                                if (!foundServers.contains(candidateIp)) {
-                                    foundServers.add(candidateIp)
-                                }
-                            }
-                            onServerFound(candidateIp)
-                            candidateIp
-                        } else {
-                            null
-                        }
-                    }
-                }
-            }
-            deferreds.awaitAll()
-        }
-
-        foundServers.sorted()
-    }
-
-    private fun isServerActiveAt(ip: String, port: Int, timeoutMs: Int): Boolean {
-        return try {
-            Socket().use { socket ->
-                socket.connect(InetSocketAddress(ip, port), timeoutMs)
-                true
-            }
-        } catch (_: Exception) {
-            false
-        }
     }
 }

@@ -13,7 +13,6 @@
     <string name="label_scanning">جاري فحص الشبكة المحلية...</string>
     <string name="label_discovered_servers">الخوادم المكتشفة</string>
     <string name="label_no_servers_found">لم يتم العثور على خوادم نشطة</string>
-    <string name="label_auto_detect_ip">كشف IP تلقائياً</string>
     <string name="label_start_streaming">بدء البث</string>
     <string name="label_stop_streaming">إيقاف البث</string>
     <string name="label_status_disconnected">غير متصل</string>
