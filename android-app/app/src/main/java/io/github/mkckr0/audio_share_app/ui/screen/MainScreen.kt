@@ -25,16 +25,22 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -59,6 +65,7 @@ sealed class Route {
 
 data class TopLevelRoute(val label: String, val icon: ImageVector, val route: Route)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
     val context = LocalContext.current
@@ -71,6 +78,20 @@ fun MainScreen() {
     val navController = rememberNavController()
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+        },
         bottomBar = {
             NavigationBar {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -87,8 +108,8 @@ fun MainScreen() {
                                 restoreState = true
                             }
                         },
-                        icon = { Icon(topLevelRoute.icon, null) },
-                        label = { Text(topLevelRoute.label) }
+                        icon = { Icon(topLevelRoute.icon, contentDescription = topLevelRoute.label) },
+                        label = { Text(topLevelRoute.label, fontWeight = FontWeight.Medium) }
                     )
                 }
             }
@@ -98,8 +119,8 @@ fun MainScreen() {
             navController = navController,
             startDestination = Route.Home,
             modifier = Modifier.padding(innerPadding),
-            enterTransition = { fadeIn(animationSpec = tween(100)) },
-            exitTransition = { fadeOut(animationSpec = tween(100)) },
+            enterTransition = { fadeIn(animationSpec = tween(150)) },
+            exitTransition = { fadeOut(animationSpec = tween(150)) },
         ) {
             composable<Route.Home> { HomeScreen() }
             composable<Route.Audio> { AudioScreen() }

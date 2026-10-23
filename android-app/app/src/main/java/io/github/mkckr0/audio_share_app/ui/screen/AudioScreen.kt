@@ -19,25 +19,52 @@ package io.github.mkckr0.audio_share_app.ui.screen
 import android.media.AudioTrack
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import io.github.mkckr0.audio_share_app.R
 import io.github.mkckr0.audio_share_app.model.AudioConfigKeys
+import io.github.mkckr0.audio_share_app.model.audioConfigDataStore
 import io.github.mkckr0.audio_share_app.model.getFloat
 import io.github.mkckr0.audio_share_app.ui.base.ConfigGroup
 import io.github.mkckr0.audio_share_app.ui.base.SliderConfig
 import io.github.mkckr0.audio_share_app.ui.theme.AppTheme
+import kotlinx.coroutines.launch
 
 @Composable
 fun AudioScreen() {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+
     Column(
-        modifier = Modifier.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         ConfigGroup(context.getString(R.string.label_audio_track)) {
             SliderConfig(
@@ -57,6 +84,7 @@ fun AudioScreen() {
                 step = 1f
             )
         }
+
         ConfigGroup(context.getString(R.string.label_audio_effect)) {
             SliderConfig(
                 key = AudioConfigKeys.LOUDNESS_ENHANCER,
@@ -66,6 +94,32 @@ fun AudioScreen() {
                 valueRange = 0f..3000f,
                 step = 100f
             )
+        }
+
+        OutlinedButton(
+            onClick = {
+                scope.launch {
+                    context.audioConfigDataStore.edit { prefs ->
+                        prefs[floatPreferencesKey(AudioConfigKeys.VOLUME)] = context.getFloat(R.string.default_volume)
+                        prefs[floatPreferencesKey(AudioConfigKeys.BUFFER_SCALE)] = context.getFloat(R.string.default_buffer_scale)
+                        prefs[floatPreferencesKey(AudioConfigKeys.LOUDNESS_ENHANCER)] = context.getFloat(R.string.default_loudness_enhancer)
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(imageVector = Icons.Default.Restore, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.label_reset_defaults),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }
