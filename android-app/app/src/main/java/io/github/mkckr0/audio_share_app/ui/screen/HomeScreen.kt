@@ -38,7 +38,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Info
@@ -113,13 +112,11 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
 
             val mainScrollState = rememberScrollState()
 
-            // Auto-fill host with detected device IP when host is empty or default prefix
-            LaunchedEffect(uiState.deviceIp) {
-                val devIp = uiState.deviceIp
-                if (devIp != null && (host.isEmpty() || host == "192.168." || host.endsWith("."))) {
-                    host = devIp
-                    val currentPort = port.toIntOrNull() ?: 65530
-                    viewModel.saveNetWorkSettings(devIp, currentPort)
+            // search the local network on open when no server address has been entered yet,
+            // the host must be the computer running the server, never this device's own IP
+            LaunchedEffect(Unit) {
+                if (host.isEmpty() || host.endsWith(".")) {
+                    viewModel.scanNetwork(port.toIntOrNull() ?: 65530, host)
                 }
             }
 
@@ -136,6 +133,7 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
                 // 2. Wi-Fi & Local Network Auto-Discovery Card
                 NetworkDiscoveryCard(
                     deviceIp = uiState.deviceIp,
+                    selectedHost = host,
                     isScanning = uiState.isScanning,
                     discoveredServers = uiState.discoveredServers,
                     onScanClick = {
@@ -147,16 +145,6 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
                         val currentPort = port.toIntOrNull() ?: 65530
                         viewModel.saveNetWorkSettings(serverIp, currentPort)
                     },
-                    onAutoDetectIpClick = {
-                        val devIp = uiState.deviceIp
-                        if (devIp != null) {
-                            host = devIp
-                            val currentPort = port.toIntOrNull() ?: 65530
-                            viewModel.saveNetWorkSettings(devIp, currentPort)
-                        } else {
-                            viewModel.autoDetectLocalIp()
-                        }
-                    }
                 )
 
                 // 3. Server Host & Port Card
@@ -168,37 +156,12 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = stringResource(R.string.label_host),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-
-                            if (uiState.deviceIp != null && !started) {
-                                FilterChip(
-                                    selected = host == uiState.deviceIp,
-                                    onClick = {
-                                        host = uiState.deviceIp
-                                        val currentPort = port.toIntOrNull() ?: 65530
-                                        viewModel.saveNetWorkSettings(uiState.deviceIp, currentPort)
-                                    },
-                                    label = { Text(stringResource(R.string.label_auto_detect_ip)) },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Default.AutoFixHigh,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                )
-                            }
-                        }
+                        Text(
+                            text = stringResource(R.string.label_host),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -222,27 +185,12 @@ fun HomeScreen(viewModel: HomeScreenViewModel = viewModel()) {
                                     )
                                 },
                                 trailingIcon = {
-                                    Row {
-                                        if (uiState.deviceIp != null && host != uiState.deviceIp && !started) {
-                                            IconButton(onClick = {
-                                                host = uiState.deviceIp
-                                                val currentPort = port.toIntOrNull() ?: 65530
-                                                viewModel.saveNetWorkSettings(uiState.deviceIp, currentPort)
-                                            }) {
-                                                Icon(
-                                                    imageVector = Icons.Default.AutoFixHigh,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary
-                                                )
-                                            }
-                                        }
-                                        if (host.isNotEmpty() && !started) {
-                                            IconButton(onClick = { host = "" }) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Clear,
-                                                    contentDescription = null
-                                                )
-                                            }
+                                    if (host.isNotEmpty() && !started) {
+                                        IconButton(onClick = { host = "" }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Clear,
+                                                contentDescription = null
+                                            )
                                         }
                                     }
                                 },
@@ -416,11 +364,11 @@ private fun StatusHeroCard(started: Boolean) {
 @Composable
 private fun NetworkDiscoveryCard(
     deviceIp: String?,
+    selectedHost: String,
     isScanning: Boolean,
     discoveredServers: List<String>,
     onScanClick: () -> Unit,
     onServerSelected: (String) -> Unit,
-    onAutoDetectIpClick: () -> Unit
 ) {
     OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -435,8 +383,8 @@ private fun NetworkDiscoveryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // informational only: this device's IP is not the server address
                 Surface(
-                    onClick = onAutoDetectIpClick,
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh
                 ) {
@@ -452,8 +400,7 @@ private fun NetworkDiscoveryCard(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (deviceIp != null) stringResource(R.string.label_device_ip, deviceIp)
-                            else stringResource(R.string.label_auto_detect_ip),
+                            text = stringResource(R.string.label_device_ip, deviceIp ?: "—"),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -506,7 +453,7 @@ private fun NetworkDiscoveryCard(
                         ) {
                             discoveredServers.forEach { serverIp ->
                                 FilterChip(
-                                    selected = false,
+                                    selected = serverIp == selectedHost,
                                     onClick = { onServerSelected(serverIp) },
                                     label = { Text(serverIp) },
                                     leadingIcon = {
